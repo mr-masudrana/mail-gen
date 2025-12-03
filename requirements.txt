@@ -1,6 +1,3 @@
 Flask
 requests
-qrcode
-Pillow
-gTTS
-fpdf
+beautifulsoup4
