@@ -76,14 +76,14 @@ def send_file(chat_id, file_data, file_type, caption=None, filename="file"):
     try: requests.post(url, data=data, files=files)
     except: pass
 
-# --- AI রেসপন্স ফাংশন (DEBUG MODE) ---
+# --- AI রেসপন্স ফাংশন (FIXED MODEL) ---
 def get_ai_reply(prompt):
     if not GEMINI_API_KEY:
         return "⚠️ Error: Vercel সেটিংসে GEMINI_API_KEY খুঁজে পাওয়া যায়নি!"
 
     try:
-        # মডেল পরিবর্তন করা হয়েছে (আরও ফাস্ট)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        # মডেল পরিবর্তন করে 'gemini-pro' করা হয়েছে (এটি সব একাউন্টে কাজ করে)
+        model = genai.GenerativeModel('gemini-pro')
         response = model.generate_content(prompt)
         
         if response.text:
@@ -98,7 +98,7 @@ def get_ai_reply(prompt):
 # --- মেইন রাউট ---
 @app.route('/')
 def home():
-    return "AI Bot Updated! 🚀"
+    return "AI Bot Fixed (Gemini Pro)! 🚀"
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -212,7 +212,7 @@ def webhook():
                  elif state == "img2pdf":
                      send_reply(chat_id, "Processing Image...")
 
-            # গ) AI চ্যাট
+            # গ) AI চ্যাট (GEMINI PRO)
             elif text:
                 requests.post(f"{BASE_URL}/sendChatAction", json={"chat_id": chat_id, "action": "typing"})
                 ai_response = get_ai_reply(text)
@@ -223,4 +223,4 @@ def webhook():
     except Exception as e:
         print(f"Error: {e}")
         return "error", 200
-    
+            
