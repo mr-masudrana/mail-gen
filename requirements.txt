@@ -4,4 +4,3 @@ qrcode
 Pillow
 gTTS
 fpdf
-google-generativeai
