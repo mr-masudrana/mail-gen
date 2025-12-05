@@ -22,14 +22,13 @@ MAIL_API_URL = "https://api.mail.tm"
 # ইউজার স্টেট (মেমোরি)
 user_states = {}
 
-# --- ১. মেনু বাটন (Updated) ---
+# --- ১. মেনু বাটন ---
 def get_main_menu():
     return json.dumps({
         "keyboard": [
             [{"text": "📧 Temp Mail"}, {"text": "🛠 Generator Tool"}],
             [{"text": "📂 PDF Tool"}, {"text": "🗣 Voice Tool"}],
             [{"text": "🖼 Image Tool"}, {"text": "📝 Text Tool"}]
-            # Info বাটন সরানো হয়েছে, এখন এটি অটো কাজ করবে
         ],
         "resize_keyboard": True,
         "one_time_keyboard": False
@@ -67,7 +66,6 @@ def get_file_content(file_id):
     return requests.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}").content
 
 def format_size(size):
-    # বাইট থেকে MB/KB কনভার্টার
     power = 2**10
     n = 0
     power_labels = {0 : '', 1: 'KB', 2: 'MB', 3: 'GB'}
@@ -77,7 +75,6 @@ def format_size(size):
     return f"{round(size, 2)} {power_labels[n]}"
 
 def format_duration(seconds):
-    # সেকেন্ড থেকে মিনিট:সেকেন্ড
     m, s = divmod(seconds, 60)
     return f"{m:02d}:{s:02d}"
 
@@ -112,14 +109,14 @@ def read_mail(msg_id, token):
 
 # --- মেইন রাউট ---
 @app.route('/')
-def home(): return "Advanced Info & Tools Bot Running! 🚀"
+def home(): return "Bot with /help Command Running! 🚀"
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
     try:
         data = request.get_json(force=True)
         
-        # --- CALLBACK QUERY (Temp Mail Check) ---
+        # --- CALLBACK QUERY ---
         if "callback_query" in data:
             call = data["callback_query"]
             chat_id = call["message"]["chat"]["id"]
@@ -157,7 +154,7 @@ def webhook():
             requests.post(f"{BASE_URL}/answerCallbackQuery", json={"callback_query_id": call["id"]})
             return "ok", 200
 
-        # --- TEXT MESSAGES & FILES ---
+        # --- TEXT MESSAGES ---
         if "message" in data:
             msg = data["message"]
             chat_id = msg["chat"]["id"]
@@ -165,9 +162,7 @@ def webhook():
             
             state = user_states.get(chat_id, None)
 
-            # --- ১. মেনু নেভিগেশন ---
-            
-            # START MESSAGE (Custom Design)
+            # --- START COMMAND ---
             if text == "/start":
                 user_states[chat_id] = None
                 u = msg.get("from", {})
@@ -183,18 +178,38 @@ def webhook():
                     "👤 <b>YOUR PROFILE:</b>\n\n"
                     f"🆔 <b>ID:</b> <code>{u.get('id')}</code>\n"
                     f"📛 <b>Name:</b> {full_name}\n"
-                    f"🔗 <b>Username:</b> {username}"
+                    f"🔗 <b>Username:</b> {username}\n\n"
+                    "ℹ️ <i>সাহায্যের জন্য /help চাপুন।</i>"
                 )
                 send_reply(chat_id, start_msg, get_main_menu())
+
+            # --- HELP COMMAND (নতুন যুক্ত করা হয়েছে) ---
+            elif text == "/help":
+                help_text = (
+                    "🤖 <b>বট গাইডলাইন (Help Menu)</b>\n\n"
+                    "আমি একটি মাল্টি-ফাংশনাল টুল বট। নিচে আমার ফিচারগুলো দেওয়া হলো:\n\n"
+                    "<b>১. অটোমেটিক ইনফো (Auto Info):</b>\n"
+                    "🔹 যেকোনো মেসেজ <b>Forward</b> করুন, আমি তার গোপন আইডি ও সোর্স বলে দেব।\n"
+                    "🔹 যেকোনো ফাইল/ছবি/ভিডিও পাঠান, আমি তার সাইজ ও ডিটেইলস দেব।\n\n"
+                    "<b>২. মেনু টুলস (Menu Tools):</b>\n"
+                    "📧 <b>Temp Mail:</b> আনলিমিটেড টেম্পোরারি মেইল ও ইনবক্স।\n"
+                    "🛠 <b>Generator:</b> QR Code, Password, Link Shortener.\n"
+                    "📂 <b>PDF Tools:</b> ছবি বা লেখা থেকে PDF তৈরি।\n"
+                    "🗣 <b>Voice Tools:</b> লেখা (English) থেকে ভয়েস তৈরি।\n"
+                    "🖼 <b>Image Tools:</b> ছবির সাইজ কমানো, সাদা-কালো করা।\n"
+                    "📝 <b>Text Tools:</b> Base64, Hash, Uppercase ইত্যাদি।\n\n"
+                    "🚀 <b>শুরু করবেন কিভাবে?</b>\n"
+                    "নিচের মেনু বাটনগুলো ব্যবহার করুন অথবা /start চাপুন।"
+                )
+                send_reply(chat_id, help_text)
 
             elif text == "🔙 Back":
                 user_states[chat_id] = None
                 send_reply(chat_id, "👋 <b>Main Menu</b>", get_main_menu())
 
-            # --- Temp Mail Menu ---
+            # --- Menu Navigation ---
             elif text == "📧 Temp Mail":
                 send_reply(chat_id, "📧 <b>Temp Mail System</b>\nনতুন মেইল তৈরি করতে নিচের বাটনে চাপুন:", get_temp_mail_menu())
-
             elif text == "📧 New Mail":
                 addr, pwd = create_mail_account()
                 if addr:
@@ -203,14 +218,13 @@ def webhook():
                     send_reply(chat_id, res, kb)
                 else: send_reply(chat_id, "⚠️ Server Error.")
 
-            # --- অন্যান্য টুল মেনু ---
             elif text == "🛠 Generator Tool": send_reply(chat_id, "🛠 Tools:", get_gen_menu())
             elif text == "📂 PDF Tool": send_reply(chat_id, "📂 Tools:", get_pdf_menu())
             elif text == "🗣 Voice Tool": send_reply(chat_id, "🗣 Tools:", get_voice_menu())
             elif text == "🖼 Image Tool": send_reply(chat_id, "🖼 Tools:", get_image_menu())
             elif text == "📝 Text Tool": send_reply(chat_id, "📝 Tools:", get_text_menu())
             
-            # --- ২. টুল অ্যাক্টিভেশন (States) ---
+            # --- Tool Activation ---
             elif text == "🟦 QR Code":
                 user_states[chat_id] = "qr"
                 send_reply(chat_id, "👉 টেক্সট দিন:")
@@ -248,13 +262,12 @@ def webhook():
                 user_states[chat_id] = "upper"
                 send_reply(chat_id, "👉 টেক্সট দিন:")
             
-            # --- ৩. ইনপুট হ্যান্ডলিং ও অটো ইনফো ---
+            # --- Input Handling ---
             else:
-                # ক) Forwarded Message (Auto Telegram Info - Custom Format)
+                # ক) Forwarded Info
                 if "forward_date" in msg:
                     chat = msg.get("forward_from_chat")
                     user = msg.get("forward_from")
-                    
                     if chat:
                         info = (
                             "📢 <b>CHANNEL SOURCE</b>\n\n"
@@ -281,12 +294,9 @@ def webhook():
                         )
                     send_reply(chat_id, info)
 
-                # খ) File Handling (Auto File Info - Custom Format)
+                # খ) File Info
                 elif (msg.get("photo") or msg.get("document") or msg.get("video") or msg.get("audio")):
-                    
-                    # যদি নির্দিষ্ট টুল সিলেক্ট করা থাকে (Image Tools)
                     if state == "img2pdf" and "photo" in msg:
-                         # Img2PDF Logic
                          file_id = msg["photo"][-1]["file_id"]
                          img_bytes = get_file_content(file_id)
                          img = Image.open(io.BytesIO(img_bytes)).convert('RGB')
@@ -296,7 +306,6 @@ def webhook():
                          send_file(chat_id, bio, "document", caption="✅ Image to PDF", filename="converted")
                     
                     elif state == "grayscale" and "photo" in msg:
-                         # Grayscale Logic
                          file_id = msg["photo"][-1]["file_id"]
                          img_bytes = get_file_content(file_id)
                          img = Image.open(io.BytesIO(img_bytes)).convert('L')
@@ -306,7 +315,6 @@ def webhook():
                          send_file(chat_id, bio, "photo", caption="⚫ Grayscale")
 
                     elif state == "resize" and "photo" in msg:
-                         # Resize Logic
                          file_id = msg["photo"][-1]["file_id"]
                          img_bytes = get_file_content(file_id)
                          img = Image.open(io.BytesIO(img_bytes))
@@ -317,7 +325,6 @@ def webhook():
                          bio.seek(0)
                          send_file(chat_id, bio, "photo", caption="📐 Resized 50%")
 
-                    # যদি কোনো টুল সিলেক্ট না থাকে -> Auto File Info
                     elif not state:
                         icon = "📁"
                         type_name = "UNKNOWN"
@@ -367,7 +374,7 @@ def webhook():
                         )
                         send_reply(chat_id, info_msg)
 
-                # গ) Text Tools Processing
+                # গ) Text Tools
                 elif state and text:
                     if state == "qr":
                         img = qrcode.make(text)
@@ -408,4 +415,3 @@ def webhook():
     except Exception as e:
         print(f"Error: {e}")
         return "error", 200
-        
